@@ -108,18 +108,6 @@ function findPlayer(query) {
     }
   }
 
-  // 4. Query Database for registered player
-  const dbMatch = db.findPlayer(clean);
-  if (dbMatch) {
-    return {
-      playerId: dbMatch.id,
-      playerName: dbMatch.name,
-      isOnline: false,
-      socket: null,
-      dbData: dbMatch
-    };
-  }
-
   return null;
 }
 
@@ -147,16 +135,9 @@ function broadcastPlayerList() {
     }
   });
 
-  // Recent registered players in DB (offline)
-  const allDbPlayers = db.getAllPlayers();
-  const offlinePlayers = allDbPlayers
-    .filter(dp => !players.has(dp.id))
-    .slice(0, 10);
-
   const payload = JSON.stringify({
     type: 'player_list',
     players: playerList,
-    offlinePlayers,
     waitingSessions,
     activeMatchCount
   });
@@ -393,7 +374,7 @@ wss.on('connection', (ws) => {
         if (!target.isOnline || !target.socket || target.socket.readyState !== WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: 'invite_failed',
-            reason: `Player "${target.playerName}" (#${target.playerId}) terdaftar di database tetapi sedang offline.`
+            reason: `Player "${target.playerName}" (#${target.playerId}) sedang tidak aktif/offline.`
           }));
           return;
         }
@@ -642,10 +623,14 @@ wss.on('connection', (ws) => {
         rooms.delete(p.currentRoomId);
       }
       players.delete(boundPlayerId);
+      db.deletePlayer(boundPlayerId);
       broadcastPlayerList();
     }
   });
 });
+
+// Bersihkan data pemain yang tidak aktif saat server dijalankan
+db.cleanInactivePlayers([]);
 
 server.listen(PORT, () => {
   console.log(`[Congklak Server] Berjalan di http://localhost:${PORT}`);

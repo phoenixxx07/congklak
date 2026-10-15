@@ -73,6 +73,29 @@ class SimpleDB {
     return this.data.players[cleanId] || null;
   }
 
+  deletePlayer(playerId) {
+    if (!playerId) return;
+    const cleanId = String(playerId).trim().toUpperCase().replace(/^#/, '');
+    if (this.data.players[cleanId]) {
+      delete this.data.players[cleanId];
+      this.save();
+    }
+  }
+
+  cleanInactivePlayers(activePlayerIds = []) {
+    const activeSet = new Set(activePlayerIds.map(id => String(id).trim().toUpperCase().replace(/^#/, '')));
+    let changed = false;
+    for (const id of Object.keys(this.data.players)) {
+      if (!activeSet.has(id)) {
+        delete this.data.players[id];
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.save();
+    }
+  }
+
   findPlayer(query) {
     if (!query) return null;
     const clean = String(query).trim().toLowerCase().replace(/^#/, '');

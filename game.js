@@ -588,43 +588,11 @@ class CongklakGame {
       });
     }
 
-    // 3. Render Offline / Registered Database Players
-    if (offlinePlayers && offlinePlayers.length > 0) {
-      const offlineHeader = document.createElement('div');
-      offlineHeader.style.fontSize = '11px';
-      offlineHeader.style.fontWeight = '800';
-      offlineHeader.style.color = 'var(--text-muted)';
-      offlineHeader.style.textTransform = 'uppercase';
-      offlineHeader.style.margin = '12px 0 4px 0';
-      offlineHeader.textContent = '💾 Terdaftar di Database (Saat Ini Offline):';
-      this.playersListContainer.appendChild(offlineHeader);
-
-      offlinePlayers.forEach(dp => {
-        if (dp.id === this.playerId) return;
-        const item = document.createElement('div');
-        item.className = 'player-list-item';
-        item.style.opacity = '0.75';
-        item.innerHTML = `
-          <div class="player-list-info">
-            <div class="player-status-dot" style="background:#6b7280; box-shadow:none;"></div>
-            <div>
-              <div class="item-name">${this.escapeHtml(dp.name)}</div>
-              <div class="item-id">#${this.escapeHtml(dp.id)} <span style="font-size:10.5px; opacity:0.8;">• Menang: ${dp.wins || 0}/${dp.matches || 0}</span></div>
-            </div>
-          </div>
-          <div>
-            <span class="status-badge" style="background:rgba(107,114,128,0.2); color:#9ca3af; font-size:11px;">Offline</span>
-          </div>
-        `;
-        this.playersListContainer.appendChild(item);
-      });
-    }
-
-    if (otherPlayers.length === 0 && (!waitingSessions || waitingSessions.length === 0) && (!offlinePlayers || offlinePlayers.length === 0)) {
+    if (otherPlayers.length === 0 && (!waitingSessions || waitingSessions.length === 0)) {
       this.playersListContainer.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 13px;">
-          Belum ada pemain lain yang online atau terdaftar.<br>
-          <span style="font-size: 12px; opacity: 0.8;">Salin Tautan Mabar di bawah dan kirimkan ke WhatsApp/Telegram teman Anda!</span>
+          Belum ada pemain lain yang sedang online.<br>
+          <span style="font-size: 12px; opacity: 0.8;">Buka link permainan di perangkat/tab lain atau buat Sesi Kamar Baru!</span>
         </div>
       `;
     }
