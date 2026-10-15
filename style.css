@@ -439,6 +439,8 @@ h1 {
   padding: 2px 8px;
   border-radius: 6px;
   pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
 }
 
 .row-top .row-label-tag {
@@ -1446,9 +1448,13 @@ select:focus {
 }
 
 .board-container.pov-flip .pit,
-.board-container.pov-flip .storehouse,
-.board-container.pov-flip .row-label-tag {
+.board-container.pov-flip .storehouse {
   transform: rotate(180deg);
+  transition: transform 0.6s ease;
+}
+
+.board-container.pov-flip .row-label-tag {
+  transform: translateX(-50%) rotate(180deg);
   transition: transform 0.6s ease;
 }
 
@@ -1470,17 +1476,6 @@ select:focus {
 
 .board-container.pov-flip .boom-overlay.show {
   transform: translate(-50%, -50%) rotate(180deg) scale(1);
-}
-
-/* Invert row tags when flipped */
-.board-container.pov-flip .row-top .row-label-tag {
-  top: auto;
-  bottom: -20px;
-}
-
-.board-container.pov-flip .row-bottom .row-label-tag {
-  bottom: auto;
-  top: -20px;
 }
 
 /* Mode Selection Cards */
