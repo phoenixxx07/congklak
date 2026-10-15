@@ -1478,6 +1478,55 @@ select:focus {
   transform: translate(-50%, -50%) rotate(180deg) scale(1);
 }
 
+/* ==========================================================================
+   FACE-TO-FACE (MODE DI TEMPAT / 1 HP)
+   Saat 2 pemain bermain berhadapan di 1 meja / 1 perangkat,
+   putar teks & lubang sisi Player 2 (baris atas A1-A7, label, dan Rumah Kanan) 180°
+   sehingga Player 2 dapat membaca angka & teks tegak lurus (tidak terbalik)!
+   ========================================================================== */
+.board-container.mode-local-face-to-face .row-top .row-label-tag {
+  transform: translateX(-50%) rotate(180deg);
+  transition: transform 0.4s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.board-container.mode-local-face-to-face .row-top .row-label-tag:hover {
+  background: rgba(244, 63, 94, 0.3);
+  border-color: rgba(244, 63, 94, 0.7);
+}
+
+.board-container.mode-local-face-to-face .row-top .pit {
+  transform: rotate(180deg);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.board-container.mode-local-face-to-face .row-top .pit.selectable:hover {
+  transform: rotate(180deg) scale(1.08);
+}
+
+.board-container.mode-local-face-to-face .row-top .pit.active-sowing {
+  transform: rotate(180deg) scale(1.1);
+}
+
+.board-container.mode-local-face-to-face .row-top .pit.active-pickup {
+  transform: rotate(180deg) scale(1.12);
+}
+
+.board-container.mode-local-face-to-face #storehouse-right {
+  transform: rotate(180deg);
+  transition: transform 0.4s ease;
+}
+
+body.mode-local-face-to-face .player-card.p-top {
+  transform: rotate(180deg);
+  transition: transform 0.4s ease;
+}
+
+body.mode-local-face-to-face .player-card.p-top.active {
+  transform: rotate(180deg) scale(1.03);
+}
+
 /* Mode Selection Cards */
 .mode-cards-grid {
   display: grid;

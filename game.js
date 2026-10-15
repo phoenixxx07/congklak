@@ -36,11 +36,11 @@ class CongklakGame {
     this.storeTop = 0;       // Right storehouse (Player 2 / Atas)
     this.storeBottom = 0;    // Left storehouse (Player 1 / Bawah)
 
-    // Game flow
     this.currentPlayer = null; // 'bottom' or 'top'
     this.isAnimating = false;
     this.gameMode = 'pvp';     // 'pvp' | 'ai' | 'online'
     this.animationSpeed = 220; // ms per drop
+    this.p2Flipped = localStorage.getItem('congklak_p2_flipped') !== 'false'; // default true: berhadapan
 
     // Multiplayer Room State
     this.socket = null;
@@ -111,6 +111,7 @@ class CongklakGame {
     this.roomIdTag = document.getElementById('room-id-tag');
     this.roomOpponentTag = document.getElementById('room-opponent-tag');
     this.currentModeLabel = document.getElementById('current-mode-label');
+    this.btnToggleP2Flip = document.getElementById('btn-toggle-p2-flip');
 
     // Modals
     this.rulesModal = document.getElementById('rules-modal');
@@ -173,7 +174,7 @@ class CongklakGame {
     }
   }
 
-  // Update POV based on Mode (Di Tempat vs Online)
+  // Update POV based on Mode (Di Tempat vs Online vs AI)
   updatePOV() {
     const topTag = document.querySelector('#top-pits-row .row-label-tag');
     const bottomTag = document.querySelector('#bottom-pits-row .row-label-tag');
@@ -183,6 +184,10 @@ class CongklakGame {
     const storeRightOwner = document.querySelector('#storehouse-right .store-owner');
 
     if (this.gameMode === 'online') {
+      this.boardContainerEl.classList.remove('mode-local-face-to-face');
+      document.body.classList.remove('mode-local-face-to-face');
+      if (this.btnToggleP2Flip) this.btnToggleP2Flip.style.display = 'none';
+
       if (this.myRole === 'top') {
         // Player 2 POV: Flip board 180deg so Player 2's pits are at the BOTTOM!
         this.boardContainerEl.classList.add('pov-flip');
@@ -202,10 +207,49 @@ class CongklakGame {
         if (storeRightLabel) storeRightLabel.textContent = 'RUMAH LAWAN';
         if (storeRightOwner) storeRightOwner.textContent = '(Player 2)';
       }
-    } else {
-      // Mode di Tempat (Lokal): Fixed Atas (P2) & Bawah (P1)
+    } else if (this.gameMode === 'ai') {
       this.boardContainerEl.classList.remove('pov-flip');
-      if (topTag) topTag.textContent = 'BARIS PLAYER ATAS (P2)';
+      this.boardContainerEl.classList.remove('mode-local-face-to-face');
+      document.body.classList.remove('mode-local-face-to-face');
+      if (this.btnToggleP2Flip) this.btnToggleP2Flip.style.display = 'none';
+
+      if (topTag) topTag.textContent = 'BARIS KOMPUTER (AI)';
+      if (bottomTag) bottomTag.textContent = 'BARIS ANDA (P1)';
+      if (storeLeftLabel) storeLeftLabel.textContent = 'RUMAH ANDA';
+      if (storeLeftOwner) storeLeftOwner.textContent = '(Player 1)';
+      if (storeRightLabel) storeRightLabel.textContent = 'RUMAH KOMPUTER';
+      if (storeRightOwner) storeRightOwner.textContent = '(AI)';
+    } else {
+      // Mode di Tempat (Lokal 1 HP / Berhadapan)
+      this.boardContainerEl.classList.remove('pov-flip');
+
+      if (this.btnToggleP2Flip) {
+        this.btnToggleP2Flip.style.display = 'inline-flex';
+        this.btnToggleP2Flip.innerHTML = this.p2Flipped 
+          ? '🔄 POV P2: Berhadapan' 
+          : '👥 POV P2: Berdampingan';
+        this.btnToggleP2Flip.title = this.p2Flipped
+          ? 'Player Atas diputar 180° agar tidak terbalik saat main berhadapan. Klik untuk ubah ke berdampingan.'
+          : 'Player Atas normal (menghadap bawah). Klik untuk putar 180° berhadapan.';
+      }
+
+      if (this.p2Flipped) {
+        // Putar baris atas, lubang A1-A7, dan Rumah Kanan 180°
+        this.boardContainerEl.classList.add('mode-local-face-to-face');
+        document.body.classList.add('mode-local-face-to-face');
+        if (topTag) {
+          topTag.textContent = 'BARIS PLAYER ATAS (P2) ↻';
+          topTag.title = 'Teks diputar 180° untuk pemain atas. Klik untuk ubah arah.';
+        }
+      } else {
+        this.boardContainerEl.classList.remove('mode-local-face-to-face');
+        document.body.classList.remove('mode-local-face-to-face');
+        if (topTag) {
+          topTag.textContent = 'BARIS PLAYER ATAS (P2)';
+          topTag.title = 'Teks normal. Klik untuk putar 180° berhadapan.';
+        }
+      }
+
       if (bottomTag) bottomTag.textContent = 'BARIS PLAYER BAWAH (P1)';
       if (storeLeftLabel) storeLeftLabel.textContent = 'RUMAH KIRI';
       if (storeLeftOwner) storeLeftOwner.textContent = '(Player Bawah)';
@@ -755,6 +799,39 @@ class CongklakGame {
       this.showModal(this.modeModal);
     });
     document.getElementById('btn-close-mode').addEventListener('click', () => this.hideModal(this.modeModal));
+
+    // Toggle POV Player Atas (Berhadapan vs Berdampingan) pada Mode Di Tempat
+    if (this.btnToggleP2Flip) {
+      this.btnToggleP2Flip.addEventListener('click', () => {
+        this.p2Flipped = !this.p2Flipped;
+        localStorage.setItem('congklak_p2_flipped', this.p2Flipped);
+        this.updatePOV();
+        this.addLog(
+          this.p2Flipped 
+            ? 'POV Player Atas diputar 180° (Mode Berhadapan).' 
+            : 'POV Player Atas dinormalkan (Mode Berdampingan).', 
+          'system'
+        );
+      });
+    }
+
+    if (this.topRowEl) {
+      this.topRowEl.addEventListener('click', (e) => {
+        if (e.target.closest('.row-label-tag')) {
+          if (this.gameMode === 'pvp') {
+            this.p2Flipped = !this.p2Flipped;
+            localStorage.setItem('congklak_p2_flipped', this.p2Flipped);
+            this.updatePOV();
+            this.addLog(
+              this.p2Flipped 
+                ? 'POV Player Atas diputar 180° (Mode Berhadapan).' 
+                : 'POV Player Atas dinormalkan (Mode Berdampingan).', 
+              'system'
+            );
+          }
+        }
+      });
+    }
 
     const selectModeEl = document.getElementById('select-mode');
 
