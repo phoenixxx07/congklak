@@ -1,0 +1,21 @@
+{
+  "name": "congklak",
+  "version": "1.0.0",
+  "description": "Permainan Tradisional Congklak 1 vs 1 Multiplayer & Multi-Sesi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "congklak",
+    "multiplayer",
+    "game",
+    "websocket"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}

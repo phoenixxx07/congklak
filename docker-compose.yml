@@ -1,0 +1,10 @@
+services:
+  congklak:
+    build: .
+    container_name: congklak-game
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    environment:
+      - PORT=9090
+      - NODE_ENV=production

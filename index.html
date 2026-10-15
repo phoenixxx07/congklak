@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Permainan Congklak Tradisional Nusantara 1 vs 1 dengan aturan otentik, animasi mulus, dan efek suara realistis.">
+  <title>Permainan Congklak 1 vs 1 Nusantara</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Floating HUD when sowing seeds -->
+  <div id="hand-hud" class="hand-floating-hud">
+    <span class="hand-icon">🐚</span>
+    <span>Kerang di Tangan: <span id="hand-count">0</span></span>
+  </div>
+
+  <!-- Landscape Orientation Recommendation Overlay for Mobile -->
+  <div id="landscape-prompt" class="landscape-prompt-overlay">
+    <div class="landscape-prompt-card">
+      <div class="phone-rotate-anim">
+        <span class="rotate-phone-icon">📱</span>
+        <span class="rotate-arrow">↻</span>
+      </div>
+      <div class="landscape-prompt-title">Disarankan Mode Landscape</div>
+      <p class="landscape-prompt-desc">
+        Papan Congklak memiliki 16 lubang mendatar.<br>
+        Putar / miringkan layar ponsel Anda ke posisi <strong>Landscape (Mendatar)</strong> untuk tampilan dan jangkauan jari terbaik!
+      </p>
+      <div class="landscape-prompt-actions">
+        <button id="btn-request-fullscreen" class="btn btn-primary" style="padding: 10px 18px; font-size: 13px;">
+          🔄 Putar Layar Sekarang
+        </button>
+        <button id="btn-dismiss-landscape" class="btn" style="padding: 8px 14px; font-size: 12px; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2);">
+          ✕ Tetap di Portrait
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-container">
+    <!-- Header -->
+    <header>
+      <div class="title-area">
+        <span class="logo-icon">🪵</span>
+        <div>
+          <h1>CONGKLAK NUSANTARA</h1>
+          <div class="subtitle">Permainan Tradisional 1 VS 1</div>
+        </div>
+      </div>
+      <div class="header-controls">
+        <!-- Player Profile Badge -->
+        <div class="player-profile-badge" id="btn-edit-profile" title="Klik untuk edit Nama & ID">
+          <span class="badge-avatar">👤</span>
+          <div class="badge-info">
+            <span class="badge-name" id="display-profile-name">Memuat...</span>
+            <span class="badge-id" id="display-profile-id">#ID</span>
+          </div>
+        </div>
+
+        <!-- Choose Mode Button -->
+        <button id="btn-choose-mode" class="btn" title="Pilih Mode Bermain (Di Tempat / Online)">
+          🎮 Mode: <span id="current-mode-label">Di Tempat</span>
+        </button>
+
+        <!-- Lobby & Invite Button -->
+        <button id="btn-open-lobby" class="btn" title="Cari Lawan / Lobi Online">
+          <span>👥 Lobi Online</span>
+          <span class="online-counter-badge" id="online-count-badge">🟢 1 Online</span>
+        </button>
+
+        <!-- Fullscreen / Landscape Toggle Button -->
+        <button id="btn-toggle-fullscreen" class="btn btn-landscape-toggle" title="Putar Layar / Mode Landscape">
+          🔄 Landscape
+        </button>
+
+        <button id="btn-new-game" class="btn btn-primary" title="Mulai Ulang Permainan">
+          🔄 Permainan Baru
+        </button>
+        <button id="btn-sound-toggle" class="btn" title="Nyalakan/Matikan Suara">
+          🔊 Suara: Nyala
+        </button>
+        <button id="btn-rules" class="btn" title="Lihat Aturan Permainan">
+          📜 Aturan Main
+        </button>
+      </div>
+    </header>
+
+    <!-- Active Multiplayer Room Banner (Only shown when playing online) -->
+    <div class="room-indicator-bar" id="room-indicator-bar">
+      <div class="room-info-tags">
+        <span class="room-tag" id="room-id-tag">Kamar: #room_123</span>
+        <span id="room-opponent-tag">⚔️ Lawan: Menunggu...</span>
+      </div>
+      <button class="btn btn-icon" id="btn-leave-room" style="background: rgba(239, 68, 68, 0.3); border-color: #ef4444;" title="Keluar dari Kamar">
+        🚪 Keluar Kamar
+      </button>
+    </div>
+
+    <!-- Turn & Status Announcement Banner -->
+    <div class="turn-banner">
+      <!-- Player Bottom Card (Player 1) -->
+      <div class="player-card p-bottom active" id="card-bottom">
+        <div class="player-avatar">👤</div>
+        <div class="player-meta">
+          <h3>Player Bawah (P1)</h3>
+          <div class="player-role">Lumbung: Rumah Kiri</div>
+        </div>
+      </div>
+
+      <!-- Live Status Message -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <div class="round-badge-bar" id="round-indicator">Ronde 1</div>
+        <div id="turn-message" class="turn-message">
+          Mengundi giliran pertama...
+        </div>
+      </div>
+
+      <!-- Player Top Card (Player 2 / AI) -->
+      <div class="player-card p-top" id="card-top">
+        <div class="player-avatar">👑</div>
+        <div class="player-meta">
+          <h3 id="name-p2">Player Atas (P2)</h3>
+          <div class="player-role">Lumbung: Rumah Kanan</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Portrait Recommendation Bar -->
+    <div class="mobile-portrait-bar" id="mobile-portrait-bar">
+      <span>📱 <strong>Disarankan Mode Landscape:</strong> Miringkan layar untuk tampilan papan optimal</span>
+      <button id="btn-quick-rotate" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px; white-space: nowrap;">
+        Putar ↻
+      </button>
+    </div>
+
+    <!-- MAIN BOARD CONTAINER -->
+    <div class="board-container" id="board-container">
+      
+      <!-- Direction Indicator -->
+      <div class="direction-indicator">
+        <span class="arrow">↻</span>
+        <span>Arah Putaran: Searah Jarum Jam (Clockwise)</span>
+        <span class="arrow">↻</span>
+      </div>
+
+      <!-- THE CONGKLAK BOARD -->
+      <div class="congklak-board" id="congklak-board">
+        
+        <!-- LEFT STOREHOUSE (Rumah Player Bagian Bawah) -->
+        <div class="storehouse store-left" id="storehouse-left">
+          <div class="store-label">RUMAH KIRI</div>
+          <div class="store-owner">(Player Bawah)</div>
+          <div class="store-count" id="store-left-count">0</div>
+        </div>
+
+        <!-- 14 SMALL PITS (7 Top & 7 Bottom) -->
+        <div class="pits-center">
+          
+          <!-- TOP ROW (Player Atas: A1 - A7) -->
+          <div class="pits-row row-top" id="top-pits-row">
+            <span class="row-label-tag">BARIS PLAYER ATAS</span>
+            <!-- Generated dynamically by JS -->
+          </div>
+
+          <!-- BOTTOM ROW (Player Bawah: B1 - B7) -->
+          <div class="pits-row row-bottom" id="bottom-pits-row">
+            <span class="row-label-tag">BARIS PLAYER BAWAH</span>
+            <!-- Generated dynamically by JS -->
+          </div>
+
+        </div>
+
+        <!-- RIGHT STOREHOUSE (Rumah Player Bagian Atas) -->
+        <div class="storehouse store-right" id="storehouse-right">
+          <div class="store-label">RUMAH KANAN</div>
+          <div class="store-owner">(Player Atas)</div>
+          <div class="store-count" id="store-right-count">0</div>
+        </div>
+
+        <!-- BOOM / NEMBAK VISUAL OVERLAY -->
+        <div class="boom-overlay" id="boom-overlay">
+          <div class="boom-text">💥 BOOM! NEMBAK!</div>
+          <div class="boom-subtext" id="boom-captured-count">+0 Kerang Masuk Lumbung!</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BOTTOM PANEL: ACTIVITY LOG & GAME SETTINGS -->
+    <div class="bottom-panel">
+      <!-- Game Log Stream -->
+      <div class="game-log-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📜</span> Riwayat Langkah Permainan
+          </div>
+          <span style="font-size: 11px; color: var(--text-muted)">Live Activity</span>
+        </div>
+        <div class="log-stream" id="log-stream"></div>
+      </div>
+
+      <!-- Settings Box -->
+      <div class="settings-box">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️</span> Pengaturan Permainan
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <label class="setting-label" for="select-mode">Mode Permainan:</label>
+          <select id="select-mode">
+            <option value="pvp">1 vs 1 (Lokal 2 Pemain)</option>
+            <option value="ai">1 vs Komputer (AI Pintar)</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <label class="setting-label" for="select-speed">Kecepatan Animasi:</label>
+          <select id="select-speed">
+            <option value="320">Santai (320 ms)</option>
+            <option value="220" selected>Normal (220 ms)</option>
+            <option value="110">Cepat (110 ms)</option>
+            <option value="40">Kilat (40 ms)</option>
+          </select>
+        </div>
+
+        <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin-top: 6px;">
+          💡 <strong>Tips:</strong> Klik pada salah satu lubang milik Anda yang berisi kerang untuk memulai membagikan kerang.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL: ATURAN PERMAINAN -->
+  <div class="modal-backdrop" id="rules-modal">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="btn-close-rules">&times;</button>
+      <div class="modal-title">📜 Aturan Permainan Congklak</div>
+      <div class="rule-list">
+        <div class="rule-item">
+          <div class="rule-badge">1</div>
+          <div><strong>Papan & Biji:</strong> Ada 7 lubang atas (milik Player Atas) dan 7 lubang bawah (milik Player Bawah), masing-masing diisi 7 kerang (total 98 kerang). Rumah Kanan milik Player Atas, Rumah Kiri milik Player Bawah (awal permainan kosong).</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-badge">2</div>
+          <div><strong>Awal Main:</strong> Sistem mengundi secara acak siapa yang jalan duluan (Player Bawah / Player Atas).</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-badge">3</div>
+          <div><strong>Arah Putaran:</strong> Player mengambil kerang dari salah satu lubangnya, lalu mengisi 1 kerang ke tiap lubang secara memutar <strong>searah jarum jam</strong>.</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-badge">4</div>
+          <div><strong>Rumah / Lumbung:</strong> Setiap melewati rumah sendiri, masukkan 1 kerang ke dalamnya. Rumah lawan dilewati tanpa diisi.</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-badge">5</div>
+          <div><strong>Lanjut Jalan:</strong> Jika kerang terakhir habis di lubang lain yang sudah berisi kerang, ambil seluruh kerang di lubang tersebut dan terus lanjutkan memutar. Jika jatuh di rumah sendiri, dapat bonus giliran!</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-badge">6</div>
+          <div><strong>💥 BOOM / NEMBAK:</strong> Jika kerang terakhir jatuh di <em>lubang kosong milik sendiri</em>, dan lubang seberangnya (atas/bawah) berisi kerang, maka kerang di seberang beserta kerang terakhir diambil semuanya dan dimasukkan ke rumah pemain (BOOM!). Jika seberang kosong, tidak dapat apa-apa.</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-badge">7</div>
+          <div><strong>Mati di Lawan:</strong> Jika kerang terakhir jatuh di lubang kosong milik lawan, maka pemain tidak mendapatkan apa-apa dan giliran selesai.</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-badge">8</div>
+          <div><strong>🔥 Ronde Selanjutnya (Ngacang / Lubang Hangus):</strong> Pada ronde berikutnya, pemain yang kalah mengosongkan lubang yang tidak genap 7, dan sisa kerang masuk ke rumah pemenang. Lubang hangus/kosong <strong>tidak boleh diisi</strong> dan <strong>wajib dilewatkan</strong> saat memutar! Berlaku seterusnya sampai kedua pemain setuju berhenti.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COIN TOSS (UNDIAN AWAL) -->
+  <div class="modal-backdrop" id="coin-modal">
+    <div class="modal-card" style="text-align: center; max-width: 420px;">
+      <div class="modal-title">🪙 Undian Giliran Pertama</div>
+      <div class="coin-box">
+        <div class="coin-disc" id="coin-disc">🐚</div>
+        <div class="coin-result-text" id="coin-result">Mengacak giliran pertama...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PEMENANG (GAME OVER) -->
+  <div class="modal-backdrop" id="winner-modal">
+    <div class="modal-card" style="text-align: center;">
+      <div class="winner-box">
+        <div class="trophy-icon">🏆</div>
+        <div class="winner-name" id="winner-title">Pemenang Congklak!</div>
+        <div style="color: var(--text-muted); font-size: 14px;" id="winner-sub">Hasil akhir perolehan kerang:</div>
+        
+        <div class="score-comparison">
+          <div class="score-pill" style="border-color: var(--accent-p1);">
+            <span style="color: var(--accent-p1); font-weight: 700; font-size: 13px;">Player Bawah</span>
+            <span class="num" id="winner-score-bottom">0</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Kerang</span>
+          </div>
+          <div class="score-pill" style="border-color: var(--accent-p2);">
+            <span style="color: var(--accent-p2); font-weight: 700; font-size: 13px;">Player Atas</span>
+            <span class="num" id="winner-score-top">0</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Kerang</span>
+          </div>
+        </div>
+
+        <div class="next-round-summary-card" id="next-round-summary-card">
+          <div style="font-weight: 800; color: #ffd700; margin-bottom: 4px;">🔥 Persiapan Ronde Berikutnya (Ngacang):</div>
+          <div id="next-round-desc">Menghitung pembagian kerang untuk ronde berikutnya...</div>
+        </div>
+
+        <div style="display: flex; gap: 10px; width: 100%; margin-top: 6px;">
+          <button id="btn-next-round" class="btn btn-primary" style="flex: 2; padding: 12px; font-size: 14px; justify-content: center;">
+            ⚔️ Lanjut Ronde Berikutnya
+          </button>
+          <button id="btn-end-match" class="btn" style="flex: 1; padding: 12px; font-size: 13px; justify-content: center; background: rgba(239, 68, 68, 0.2); border-color: #ef4444;">
+            🛑 Selesai
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROFIL PEMAIN -->
+  <div class="modal-backdrop" id="profile-modal">
+    <div class="modal-card" style="max-width: 440px;">
+      <button class="modal-close-btn" id="btn-close-profile">&times;</button>
+      <div class="modal-title">👤 Profil Pemain Congklak</div>
+      <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-top: -6px;">
+        Nama & ID ini digunakan agar pemain lain bisa menemukan dan mengundang Anda.
+      </p>
+
+      <div class="input-group">
+        <label class="input-label" for="input-player-name">Nama Pemain / Panggilan:</label>
+        <input type="text" id="input-player-name" class="text-input" placeholder="Misal: Budi Santoso" maxlength="20">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="input-player-id">Player ID (Unik untuk Diundang):</label>
+        <div class="input-row">
+          <input type="text" id="input-player-id" class="text-input" placeholder="Misal: BUDI-99" maxlength="16">
+          <button id="btn-random-id" class="btn" type="button" title="Buat ID Acak">🎲 Acak</button>
+        </div>
+      </div>
+
+      <button id="btn-save-profile" class="btn btn-primary" style="margin-top: 10px; justify-content: center; padding: 12px;">
+        💾 Simpan Profil
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: LOBI PEMAIN ONLINE & UNDANGAN -->
+  <div class="modal-backdrop" id="lobby-modal">
+    <div class="modal-card" style="max-width: 540px;">
+      <button class="modal-close-btn" id="btn-close-lobby">&times;</button>
+      <div class="modal-title">👥 Lobi Online & Cari Lawan</div>
+
+      <!-- My ID Card -->
+      <div class="lobby-header-box">
+        <div>
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">ID Saya untuk dibagikan:</div>
+          <div class="my-id-display" id="my-lobby-id">#MEMUAT...</div>
+        </div>
+        <button id="btn-copy-id" class="btn" style="padding: 6px 12px; font-size: 12px;">
+          📋 Salin ID
+        </button>
+      </div>
+
+      <!-- Direct Invite by ID Input -->
+      <div class="input-group" style="margin-top: 4px;">
+        <label class="input-label" for="input-target-id">Undang Langsung dengan ID Lawan:</label>
+        <div class="input-row">
+          <input type="text" id="input-target-id" class="text-input" placeholder="Masukkan ID Player lawan (contoh: SITI-88)">
+          <button id="btn-send-invite" class="btn btn-primary" style="white-space: nowrap;">
+            ⚔️ Undang
+          </button>
+        </div>
+      </div>
+
+      <!-- Sesi ID Section (Room Code) -->
+      <div class="input-group" style="margin-top: 8px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(212,175,55,0.25);">
+        <label class="input-label" for="input-session-id">🎮 Sesi Pertandingan 1 vs 1 (Sesi ID / Kode Kamar):</label>
+        <div class="input-row">
+          <input type="text" id="input-session-id" class="text-input" placeholder="Misal: SESI-1234">
+          <button id="btn-join-session" class="btn btn-primary" style="white-space: nowrap;">
+            🚪 Masuk Sesi
+          </button>
+          <button id="btn-create-session" class="btn" style="white-space: nowrap;">
+            ➕ Buat Sesi Baru
+          </button>
+        </div>
+      </div>
+
+      <!-- Online Players List -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <span class="input-label">Daftar Pemain Sedang Online:</span>
+        <button id="btn-refresh-players" class="btn btn-icon" style="padding: 4px 8px; font-size: 12px;" title="Segarkan Daftar">🔄 Segarkan</button>
+      </div>
+
+      <div class="players-list-container" id="players-list-container">
+        <div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
+          Memuat daftar pemain online...
+        </div>
+      </div>
+
+      <!-- Remote Play / Mabar Jarak Jauh Box -->
+      <div style="background: rgba(16, 185, 129, 0.1); border: 1px dashed rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 12px; margin-top: 10px; font-size: 12px; line-height: 1.5;">
+        <div style="font-weight: 800; color: #10b981; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <span>🌐 Mabar Beda Tempat / Jarak Jauh:</span>
+          <button id="btn-copy-share-link" class="btn" style="padding: 4px 8px; font-size: 11px;">
+            🔗 Salin Tautan Mabar
+          </button>
+        </div>
+        <div style="color: var(--text-muted);">
+          • <strong>Satu Wi-Fi / Hotspot:</strong> Teman bisa langsung buka: <code style="color: #ffd700;" id="lan-ip-display">http://192.168.47.211:9090</code><br>
+          • <strong>Beda Rumah / Internet Luar:</strong> Buka terminal, jalankan: <code style="color: #ffd700;">npx localtunnel --port 9090</code> untuk dapat link publik yang bisa diakses teman dari mana saja!
+        </div>
+      </div>
+
+      <div style="font-size: 11.5px; color: var(--text-muted); text-align: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; margin-top: 10px;">
+        💡 Lebih dari 1 pasangan dapat bermain secara bersamaan dalam kamar terpisah.
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PILIH MODE BERMAIN -->
+  <div class="modal-backdrop" id="mode-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <button class="modal-close-btn" id="btn-close-mode">&times;</button>
+      <div class="modal-title">🎮 Pilih Mode Bermain</div>
+      <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-top: -6px;">
+        Pilih bagaimana Anda ingin memainkan Congklak hari ini:
+      </p>
+
+      <div class="mode-cards-grid">
+        <!-- Mode 1: Di Tempat -->
+        <div class="mode-card" id="card-mode-local">
+          <div class="mode-card-icon">📱</div>
+          <div class="mode-card-title">Di Tempat (1 HP)</div>
+          <div class="mode-card-desc">
+            1 Perangkat untuk 2 Pemain.<br>
+            <strong>Sudut Pandang:</strong> Atas (P2) & Bawah (P1).
+          </div>
+        </div>
+
+        <!-- Mode 2: Lawan Komputer (AI) -->
+        <div class="mode-card" id="card-mode-ai">
+          <div class="mode-card-icon">🤖</div>
+          <div class="mode-card-title">Lawan Komputer</div>
+          <div class="mode-card-desc">
+            Bermain sendiri lawan AI pintar.<br>
+            <strong>Sudut Pandang:</strong> Anda di Bawah, Bot di Atas.
+          </div>
+        </div>
+
+        <!-- Mode 3: Online Mabar -->
+        <div class="mode-card" id="card-mode-online">
+          <div class="mode-card-icon">🌐</div>
+          <div class="mode-card-title">Mabar Online</div>
+          <div class="mode-card-desc">
+            Beda HP / Beda Komputer.<br>
+            <strong>Sudut Pandang:</strong> Baris Anda selalu di <strong>BAWAH</strong>!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: UNDANGAN MASUK (INCOMING INVITATION) -->
+  <div class="modal-backdrop" id="incoming-invite-modal">
+    <div class="modal-card" style="max-width: 420px; text-align: center;">
+      <div style="font-size: 48px; margin-bottom: 6px;">⚔️</div>
+      <div class="modal-title" style="font-size: 20px;">Tantangan Bermain Congklak!</div>
+      
+      <p style="font-size: 14px; margin: 12px 0; line-height: 1.5;" id="invite-desc-text">
+        <strong>Nama Lawan</strong> (<code>#ID-123</code>) mengajak Anda bertanding Congklak 1 vs 1.
+      </p>
+
+      <div class="invite-actions">
+        <button id="btn-reject-invite" class="btn" style="background: rgba(239,68,68,0.25); border-color: #ef4444; flex: 1; padding: 10px;">
+          ❌ Tolak
+        </button>
+        <button id="btn-accept-invite" class="btn btn-primary" style="flex: 1; padding: 10px;">
+          ✅ Terima Tantangan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DIALOG KONFIRMASI & NOTIFIKASI ELEGAN -->
+  <div class="modal-backdrop" id="confirm-modal">
+    <div class="modal-card confirm-modal-card">
+      <button class="modal-close-btn" id="btn-close-confirm" title="Tutup">&times;</button>
+      
+      <div class="confirm-icon-wrapper" id="confirm-icon-wrapper">
+        <span class="confirm-icon" id="confirm-icon">⚠️</span>
+      </div>
+
+      <div class="confirm-title" id="confirm-title">Konfirmasi Tindakan</div>
+      <div class="confirm-message" id="confirm-message">Apakah Anda yakin ingin melanjutkan tindakan ini?</div>
+
+      <div class="confirm-actions" id="confirm-actions">
+        <button id="btn-confirm-cancel" class="btn btn-secondary confirm-btn">
+          ✕ Batal
+        </button>
+        <button id="btn-confirm-ok" class="btn btn-primary confirm-btn">
+          ✓ Ya, Lanjutkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio and Game Logic Scripts -->
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
