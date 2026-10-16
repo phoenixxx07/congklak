@@ -18,7 +18,7 @@
   --accent-p2: #f43f5e;
   --accent-p2-glow: rgba(244, 63, 94, 0.4);
   --bg-gradient: radial-gradient(circle at 50% 20%, #1e130c 0%, #0d0805 100%);
-  --panel-bg: rgba(30, 20, 15, 0.85);
+  --panel-bg: rgba(30, 19, 13, 0.96);
   --panel-border: rgba(212, 175, 55, 0.3);
   --text-main: #f5eedc;
   --text-muted: #a69584;
@@ -78,7 +78,6 @@ header {
   gap: 12px;
   padding: 12px 20px;
   background: var(--panel-bg);
-  backdrop-filter: blur(10px);
   border-radius: 16px;
   border: 1px solid var(--panel-border);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -193,7 +192,6 @@ h1 {
   align-items: center;
   padding: 12px 24px;
   background: var(--panel-bg);
-  backdrop-filter: blur(10px);
   border-radius: 14px;
   border: 1px solid var(--panel-border);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
@@ -477,32 +475,39 @@ h1 {
   justify-content: center;
   position: relative;
   cursor: default;
-  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  contain: layout style;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .pit.selectable {
   cursor: pointer;
-  border-color: rgba(255, 215, 0, 0.6);
+  border-color: rgba(255, 215, 0, 0.85);
   box-shadow: 
     inset 0 8px 18px rgba(0, 0, 0, 0.95),
-    0 0 12px var(--gold-glow);
-  animation: selectablePulse 1.8s infinite ease-in-out;
+    0 0 10px rgba(255, 215, 0, 0.5);
+  position: relative;
 }
 
-.pit.selectable:hover {
-  transform: scale(1.08);
-  border-color: #ffd700;
-  box-shadow: 
-    inset 0 8px 18px rgba(0, 0, 0, 0.95),
-    0 0 20px #ffd700;
+.pit.selectable::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-glow);
+  box-shadow: 0 0 14px var(--gold-glow);
+  pointer-events: none;
+  animation: selectableGlow 1.8s infinite ease-in-out;
+  will-change: opacity, transform;
 }
 
-@keyframes selectablePulse {
+@keyframes selectableGlow {
   0%, 100% {
-    box-shadow: inset 0 8px 18px rgba(0,0,0,0.95), 0 0 8px rgba(255, 215, 0, 0.4);
+    opacity: 0.35;
+    transform: scale(0.98);
   }
   50% {
-    box-shadow: inset 0 8px 18px rgba(0,0,0,0.95), 0 0 18px rgba(255, 215, 0, 0.8);
+    opacity: 0.95;
+    transform: scale(1.03);
   }
 }
 
@@ -560,6 +565,7 @@ h1 {
     inset 0 1px 2px rgba(255, 255, 255, 0.8),
     1px 2px 4px rgba(0, 0, 0, 0.6);
   transition: transform 0.2s ease;
+  will-change: transform;
 }
 
 /* Slit of the cowrie shell */
@@ -578,12 +584,14 @@ h1 {
 /* FLOATING HAND / SOWING SEEDS IN HAND HUD */
 .hand-floating-hud {
   position: fixed;
+  top: 0;
+  left: 0;
   pointer-events: none;
   z-index: 1000;
   display: none;
   align-items: center;
   gap: 8px;
-  background: rgba(20, 10, 5, 0.9);
+  background: rgba(20, 10, 5, 0.95);
   border: 2px solid #ffd700;
   padding: 6px 14px;
   border-radius: 25px;
@@ -591,8 +599,9 @@ h1 {
   font-weight: 800;
   font-size: 15px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 215, 0, 0.5);
-  transform: translate(-50%, -120%);
-  transition: left 0.15s ease-out, top 0.15s ease-out;
+  transform: translate3d(0, 0, 0) translate(-50%, -120%);
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .hand-floating-hud.visible {
@@ -671,7 +680,6 @@ h1 {
 
 .game-log-box {
   background: var(--panel-bg);
-  backdrop-filter: blur(10px);
   border-radius: 16px;
   border: 1px solid var(--panel-border);
   padding: 16px;
@@ -757,7 +765,6 @@ h1 {
 /* Settings & Options Box */
 .settings-box {
   background: var(--panel-bg);
-  backdrop-filter: blur(10px);
   border-radius: 16px;
   border: 1px solid var(--panel-border);
   padding: 16px;
@@ -800,8 +807,7 @@ select:focus {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.88);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -1586,9 +1592,7 @@ body.mode-local-face-to-face .player-card.p-top.active {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(10, 5, 2, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(10, 5, 2, 0.95);
   z-index: 3000;
   display: none;
   align-items: center;

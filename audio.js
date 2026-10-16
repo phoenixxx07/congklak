@@ -14,6 +14,13 @@ class CongklakAudio {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+        // Pre-generate noise buffer once to save CPU/battery on every shell drop
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.04);
+        this.cachedNoiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = this.cachedNoiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.008));
+        }
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -30,19 +37,13 @@ class CongklakAudio {
   playShellDrop(pitchMod = 1) {
     if (!this.enabled) return;
     this.init();
-    if (!this.ctx) return;
+    if (!this.ctx || !this.cachedNoiseBuffer) return;
 
     const t = this.ctx.currentTime;
     
-    // Noise burst for sharp click
-    const bufferSize = this.ctx.sampleRate * 0.04;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.008));
-    }
+    // Reuse pre-cached noise buffer instead of generating arrays on every drop
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.cachedNoiseBuffer;
 
     // Filter to sound like resonant wood/stone
     const filter = this.ctx.createBiquadFilter();

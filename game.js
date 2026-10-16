@@ -143,6 +143,14 @@ class CongklakGame {
     this.topRowEl.innerHTML = '<span class="row-label-tag">BARIS PLAYER ATAS</span>';
     this.bottomRowEl.innerHTML = '<span class="row-label-tag">BARIS PLAYER BAWAH</span>';
 
+    this.pitElements = { top: [], bottom: [] };
+    this.badgeElements = { top: [], bottom: [] };
+    this.shellContainerElements = { top: [], bottom: [] };
+    this.cachedCounts = { top: new Array(7).fill(-1), bottom: new Array(7).fill(-1) };
+    this.cachedBurnt = { top: new Array(7).fill(null), bottom: new Array(7).fill(null) };
+    this.cachedStoreTop = -1;
+    this.cachedStoreBottom = -1;
+
     // Top Pits (0 to 6)
     for (let i = 0; i < 7; i++) {
       const pitEl = document.createElement('div');
@@ -156,6 +164,10 @@ class CongklakGame {
         <span class="pit-count-badge" id="badge-top-${i}">7</span>
       `;
       this.topRowEl.appendChild(pitEl);
+
+      this.pitElements.top[i] = pitEl;
+      this.badgeElements.top[i] = pitEl.querySelector('.pit-count-badge');
+      this.shellContainerElements.top[i] = pitEl.querySelector('.shells-container');
     }
 
     // Bottom Pits (0 to 6)
@@ -171,6 +183,10 @@ class CongklakGame {
         <span class="pit-count-badge" id="badge-bottom-${i}">7</span>
       `;
       this.bottomRowEl.appendChild(pitEl);
+
+      this.pitElements.bottom[i] = pitEl;
+      this.badgeElements.bottom[i] = pitEl.querySelector('.pit-count-badge');
+      this.shellContainerElements.bottom[i] = pitEl.querySelector('.shells-container');
     }
   }
 
@@ -346,13 +362,20 @@ class CongklakGame {
 
   /* WebSocket Multiplayer Engine */
   initWebSocket() {
+    if (!window.location.host || window.location.protocol === 'file:') {
+      if (this.onlineBadge) this.onlineBadge.innerHTML = '⚪ Offline (Lokal)';
+      return;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}`;
 
     try {
       this.socket = new WebSocket(wsUrl);
+      this.wsReconnectDelay = this.wsReconnectDelay || 3000;
 
       this.socket.onopen = () => {
+        this.wsReconnectDelay = 3000;
         this.sendWS({
           type: 'register',
           playerId: this.playerId,
@@ -371,12 +394,16 @@ class CongklakGame {
       };
 
       this.socket.onclose = () => {
-        this.onlineBadge.innerHTML = '⚪ Offline';
-        setTimeout(() => this.initWebSocket(), 3000);
+        if (this.onlineBadge) this.onlineBadge.innerHTML = '⚪ Offline';
+        if (this.wsReconnectTimer) clearTimeout(this.wsReconnectTimer);
+        this.wsReconnectTimer = setTimeout(() => {
+          this.wsReconnectDelay = Math.min(30000, this.wsReconnectDelay * 1.5);
+          this.initWebSocket();
+        }, this.wsReconnectDelay);
       };
 
       this.socket.onerror = () => {
-        this.onlineBadge.innerHTML = '⚪ Offline';
+        if (this.onlineBadge) this.onlineBadge.innerHTML = '⚪ Offline';
       };
     } catch (e) {
       console.warn('WebSocket connection error:', e);
@@ -1323,10 +1350,10 @@ class CongklakGame {
     if (startSide === 'top') this.topPits[startIndex] = 0;
     else this.bottomPits[startIndex] = 0;
 
-    const startPitEl = document.getElementById(`pit-${startSide}-${startIndex}`);
+    const startPitEl = (this.pitElements && this.pitElements[startSide]) ? this.pitElements[startSide][startIndex] : document.getElementById(`pit-${startSide}-${startIndex}`);
     startPitEl.classList.add('active-pickup');
     window.soundFx.playScoop();
-    this.updateBoardDisplay();
+    this.updateBoardDisplay({ type: 'pit', side: startSide, index: startIndex });
 
     let actorName;
     if (this.gameMode === 'online') {
@@ -1379,13 +1406,13 @@ class CongklakGame {
         } else {
           this.bottomPits[targetSlot.index]++;
         }
-        targetEl = document.getElementById(`pit-${targetSlot.side}-${targetSlot.index}`);
+        targetEl = (this.pitElements && this.pitElements[targetSlot.side]) ? this.pitElements[targetSlot.side][targetSlot.index] : document.getElementById(`pit-${targetSlot.side}-${targetSlot.index}`);
       }
 
       window.soundFx.playShellDrop(targetSlot.type === 'store' ? 1.4 : 1.0);
       this.highlightSlot(targetEl);
       this.updateFloatingHand(targetEl, heldShells);
-      this.updateBoardDisplay();
+      this.updateBoardDisplay(targetSlot);
 
       await this.sleep(this.animationSpeed);
 
@@ -1425,10 +1452,10 @@ class CongklakGame {
             if (side === 'top') this.topPits[index] = 0;
             else this.bottomPits[index] = 0;
 
-            const scoopPitEl = document.getElementById(`pit-${side}-${index}`);
+            const scoopPitEl = (this.pitElements && this.pitElements[side]) ? this.pitElements[side][index] : document.getElementById(`pit-${side}-${index}`);
             scoopPitEl.classList.add('active-pickup');
             window.soundFx.playScoop();
-            this.updateBoardDisplay();
+            this.updateBoardDisplay({ type: 'pit', side, index });
             this.addLog(`Kerang habis di lubang ${side === 'top' ? 'A' : 'B'}${index + 1} (berisi ${heldShells} kerang). Lanjut jalan...`, this.currentPlayer === 'bottom' ? 'p1' : 'p2');
             this.showFloatingHand(scoopPitEl, heldShells);
 
@@ -1797,39 +1824,69 @@ class CongklakGame {
     document.getElementById('congklak-board').style.animation = '';
   }
 
-  updateBoardDisplay() {
-    this.storeLeftEl.textContent = this.storeBottom;
-    this.storeRightEl.textContent = this.storeTop;
-
-    // Top pits
-    for (let i = 0; i < 7; i++) {
-      const pitEl = document.getElementById(`pit-top-${i}`);
-      const isBurnt = this.burntPits.top[i];
-      pitEl.classList.toggle('burnt', isBurnt);
-
-      const count = isBurnt ? 0 : this.topPits[i];
-      document.getElementById(`badge-top-${i}`).textContent = count;
-      this.renderShellsGraphic(`shells-top-${i}`, count);
+  updateBoardDisplay(target = null) {
+    if (this.storeBottom !== this.cachedStoreBottom) {
+      this.storeLeftEl.textContent = this.storeBottom;
+      this.cachedStoreBottom = this.storeBottom;
+    }
+    if (this.storeTop !== this.cachedStoreTop) {
+      this.storeRightEl.textContent = this.storeTop;
+      this.cachedStoreTop = this.storeTop;
     }
 
-    // Bottom pits
-    for (let i = 0; i < 7; i++) {
-      const pitEl = document.getElementById(`pit-bottom-${i}`);
-      const isBurnt = this.burntPits.bottom[i];
-      pitEl.classList.toggle('burnt', isBurnt);
+    // Targeted single slot update during sowing
+    if (target) {
+      if (target.type === 'pit') {
+        this.updateSinglePitDisplay(target.side, target.index);
+      }
+      return;
+    }
 
-      const count = isBurnt ? 0 : this.bottomPits[i];
-      document.getElementById(`badge-bottom-${i}`).textContent = count;
-      this.renderShellsGraphic(`shells-bottom-${i}`, count);
+    // Full state diff check
+    for (let i = 0; i < 7; i++) {
+      this.updateSinglePitDisplay('top', i);
+      this.updateSinglePitDisplay('bottom', i);
     }
   }
 
-  renderShellsGraphic(containerId, count) {
-    const container = document.getElementById(containerId);
+  updateSinglePitDisplay(side, i) {
+    if (!this.pitElements || !this.pitElements[side] || !this.pitElements[side][i]) return;
+
+    const isBurnt = this.burntPits[side][i];
+    const count = isBurnt ? 0 : (side === 'top' ? this.topPits[i] : this.bottomPits[i]);
+    const prevCount = this.cachedCounts[side][i];
+    const prevBurnt = this.cachedBurnt[side][i];
+
+    if (count === prevCount && isBurnt === prevBurnt) {
+      return; // Skip DOM update if unchanged
+    }
+
+    this.cachedCounts[side][i] = count;
+    this.cachedBurnt[side][i] = isBurnt;
+
+    const pitEl = this.pitElements[side][i];
+    if (isBurnt !== prevBurnt) {
+      pitEl.classList.toggle('burnt', isBurnt);
+    }
+
+    const badgeEl = this.badgeElements[side][i];
+    if (badgeEl) badgeEl.textContent = count;
+
+    const container = this.shellContainerElements[side][i];
+    if (container) {
+      this.renderShellsGraphic(container, count);
+    }
+  }
+
+  renderShellsGraphic(container, count) {
     if (!container) return;
+    const visualNodes = Math.min(count, 12);
+    if (container._visualCount === visualNodes) {
+      return; // Skip innerHTML wipe if count didn't cross visual threshold
+    }
+    container._visualCount = visualNodes;
     container.innerHTML = '';
 
-    const visualNodes = Math.min(count, 12);
     for (let i = 0; i < visualNodes; i++) {
       const shell = document.createElement('div');
       shell.className = 'shell-node';
@@ -1840,7 +1897,7 @@ class CongklakGame {
       const y = Math.sin(angle) * radius;
       const rot = (i * 47) % 360;
 
-      shell.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
+      shell.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${rot}deg)`;
       container.appendChild(shell);
     }
   }
@@ -1863,8 +1920,8 @@ class CongklakGame {
       : `Giliran: <span style="color:#ffd700">${playerName}</span> — Silakan pilih lubang`;
 
     for (let i = 0; i < 7; i++) {
-      const topPit = document.getElementById(`pit-top-${i}`);
-      const bottomPit = document.getElementById(`pit-bottom-${i}`);
+      const topPit = this.pitElements ? this.pitElements.top[i] : document.getElementById(`pit-top-${i}`);
+      const bottomPit = this.pitElements ? this.pitElements.bottom[i] : document.getElementById(`pit-bottom-${i}`);
 
       const isTopBurnt = this.burntPits.top[i];
       const isBottomBurnt = this.burntPits.bottom[i];
@@ -1872,13 +1929,13 @@ class CongklakGame {
       if (this.gameMode === 'online') {
         const canPickTop = !this.isAnimating && !isBottom && this.myRole === 'top' && !isTopBurnt && this.topPits[i] > 0;
         const canPickBottom = !this.isAnimating && isBottom && this.myRole === 'bottom' && !isBottomBurnt && this.bottomPits[i] > 0;
-        topPit.classList.toggle('selectable', canPickTop);
-        bottomPit.classList.toggle('selectable', canPickBottom);
+        if (topPit) topPit.classList.toggle('selectable', canPickTop);
+        if (bottomPit) bottomPit.classList.toggle('selectable', canPickBottom);
       } else {
         const canPickTop = !this.isAnimating && !isBottom && !isTopBurnt && this.topPits[i] > 0 && this.gameMode !== 'ai';
         const canPickBottom = !this.isAnimating && isBottom && !isBottomBurnt && this.bottomPits[i] > 0;
-        topPit.classList.toggle('selectable', canPickTop);
-        bottomPit.classList.toggle('selectable', canPickBottom);
+        if (topPit) topPit.classList.toggle('selectable', canPickTop);
+        if (bottomPit) bottomPit.classList.toggle('selectable', canPickBottom);
       }
     }
   }
@@ -1894,22 +1951,24 @@ class CongklakGame {
   }
 
   clearAllHighlights() {
-    document.querySelectorAll('.pit').forEach(p => p.classList.remove('active-sowing'));
-    document.querySelectorAll('.storehouse').forEach(s => s.classList.remove('highlight'));
+    document.querySelectorAll('.pit.active-sowing').forEach(p => p.classList.remove('active-sowing'));
+    document.querySelectorAll('.storehouse.highlight').forEach(s => s.classList.remove('highlight'));
   }
 
   showFloatingHand(targetEl, count) {
     const rect = targetEl.getBoundingClientRect();
-    this.handHudEl.style.left = `${rect.left + rect.width / 2}px`;
-    this.handHudEl.style.top = `${rect.top}px`;
+    const x = Math.round(rect.left + rect.width / 2);
+    const y = Math.round(rect.top);
+    this.handHudEl.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -120%)`;
     this.handCountEl.textContent = count;
     this.handHudEl.classList.add('visible');
   }
 
   updateFloatingHand(targetEl, count) {
     const rect = targetEl.getBoundingClientRect();
-    this.handHudEl.style.left = `${rect.left + rect.width / 2}px`;
-    this.handHudEl.style.top = `${rect.top}px`;
+    const x = Math.round(rect.left + rect.width / 2);
+    const y = Math.round(rect.top);
+    this.handHudEl.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -120%)`;
     this.handCountEl.textContent = count;
   }
 
